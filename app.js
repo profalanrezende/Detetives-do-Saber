@@ -59,7 +59,7 @@ const SCORE={clue:2,rel:10,relMin:4,wrongPair:-1,wrongChoice:-2,hint:-1};
 
 let DB=(function(){let d=null;try{d=JSON.parse(localStorage.getItem(KEY))}catch(e){}d=d||{};
  const base={users:{},session:null,books:{},hidden:{},mail:{},prog:{},cloud:{books:[]},sync:{},diary:{},notes:[]};
- const r=Object.assign(base,d);r.set=Object.assign({pass:'prof123',hard:false,sound:true,room:'',sbUrl:'',sbKey:''},d.set||{});return r})();
+ const r=Object.assign(base,d);r.set=Object.assign({pass:'prof123',hard:false,sound:true,gemKey:'',room:'',sbUrl:'',sbKey:''},d.set||{});return r})();
 let _sv;function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
 function saveSoon(){clearTimeout(_sv);_sv=setTimeout(save,150)}
 const me=()=>DB.users[DB.session]||null;
@@ -281,7 +281,7 @@ function roomLink(){const o={u:DB.set.sbUrl,k:DB.set.sbKey,r:DB.set.room};return
 function applyRoomHash(){const m=location.hash.match(/sala=([^&]+)/);if(!m)return false;try{const o=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
   if(o.u&&o.k&&o.r){DB.set.sbUrl=o.u;DB.set.sbKey=o.k;DB.set.room=o.r;save();history.replaceState(null,'',location.pathname+location.search);return true}}catch(e){}return false}
 async function loadRepoConfig(){
- try{const r=await fetch('config.json',{cache:'no-store'});if(r.ok){const c=await r.json();if(c.sbUrl&&c.sbKey&&!DB.set.sbUrl){DB.set.sbUrl=c.sbUrl;DB.set.sbKey=c.sbKey;DB.set.room=c.room||DB.set.room;save()}}}catch(e){}
+ try{const r=await fetch('config.json',{cache:'no-store'});if(r.ok){const c=await r.json();if(c.gemKey&&!DB.set.gemKey){DB.set.gemKey=c.gemKey;save()}if(c.sbUrl&&c.sbKey&&!DB.set.sbUrl){DB.set.sbUrl=c.sbUrl;DB.set.sbKey=c.sbKey;DB.set.room=c.room||DB.set.room;save()}}}catch(e){}
  try{const r=await fetch('livros.json',{cache:'no-store'});if(r.ok){const j=await r.json();if(Array.isArray(j))REPO=j}}catch(e){}
 }
 
@@ -1073,8 +1073,11 @@ Views.teacher={
    body.innerHTML=`<div class="tc-card"><h3>⚙️ Ajustes</h3><label class="fl">Senha do professor<input class="in" id="sP" value="${esc(DB.set.pass)}"></label>
    <label class="fl chk"><input type="checkbox" id="sH" ${DB.set.hard?'checked':''}> Modo desafio: as pistas do texto não ficam grifadas (o aluno precisa descobrir por onde clicar)</label>
    <label class="fl chk"><input type="checkbox" id="sS" ${DB.set.sound!==false?'checked':''}> Efeitos sonoros</label>
-   <div class="tc-row"><button class="bt" id="sV">💾 Salvar ajustes</button><button class="bt ghost" id="sR">Restaurar livros de exemplo</button><button class="bt ghost danger" id="sX">Apagar TODOS os dados deste aparelho</button></div></div>`;
-   $('#sV',body).onclick=()=>{DB.set.pass=$('#sP',body).value.trim()||'prof123';DB.set.hard=$('#sH',body).checked;DB.set.sound=$('#sS',body).checked;save();toast('Ajustes salvos.','💾')};
+   <label class="fl">🦜 Chave da API Gemini (Arara Tagarela com IA) <small>— opcional; fica só neste aparelho</small><input class="in mono" id="sG" type="password" autocomplete="off" value="${esc(DB.set.gemKey||'')}" placeholder="Cole a chave aqui"></label>
+   <p class="tc-note">Sem chave, a Arara responde só com o texto dos livros. Com chave, ela usa IA (Gemini). Para os alunos de <b>outros aparelhos</b> também terem IA, coloque <code>"gemKey":"SUA_CHAVE"</code> no <code>config.json</code> do repositório. <b>Atenção:</b> arquivos do GitHub Pages são públicos, então restrinja a chave ao seu site (Google AI Studio → chave → restrições de aplicativo/referenciador) e defina uma cota baixa.</p>
+   <div class="tc-row"><button class="bt ghost" id="sT">🔌 Testar IA</button><button class="bt" id="sV">💾 Salvar ajustes</button><button class="bt ghost" id="sR">Restaurar livros de exemplo</button><button class="bt ghost danger" id="sX">Apagar TODOS os dados deste aparelho</button></div></div>`;
+   $('#sV',body).onclick=()=>{DB.set.pass=$('#sP',body).value.trim()||'prof123';DB.set.hard=$('#sH',body).checked;DB.set.sound=$('#sS',body).checked;DB.set.gemKey=$('#sG',body).value.trim();save();toast('Ajustes salvos.','💾')};
+   $('#sT',body).onclick=async()=>{DB.set.gemKey=$('#sG',body).value.trim();save();try{const r=await Arara.gemini('Responda apenas: Squawk, estou funcionando!',[],'');toast(String(r).slice(0,70),'🦜')}catch(e){toast('Falhou: '+String(e.message||e).slice(0,90),'⚠️')}};
    $('#sR',body).onclick=()=>{SAMPLES.forEach(s=>{delete DB.hidden[s.id];delete DB.books[s.id]});save();toast('Exemplos restaurados.','📚')};
    $('#sX',body).onclick=async()=>{if(await Dlg.confirm('Isto apaga contas, cartas, progresso e livros criados neste aparelho. Tem certeza?','Apagar tudo')){localStorage.removeItem(KEY);location.reload()}}}
   draw()}
@@ -1089,7 +1092,7 @@ function downloadBackup(){const d=new Date(),n=`${d.getFullYear()}-${String(d.ge
 function restoreBackup(file){return file.text().then(t=>{let j;try{j=JSON.parse(t)}catch(e){throw new Error('Arquivo inválido.')}
  const d=j&&j.app==='detetives-do-saber'?j.data:null;if(!d||!d.users)throw new Error('Este arquivo não é um backup do Detetives do Saber.');
  return Dlg.confirm('Carregar este backup? Os dados deste aparelho serão <b>substituídos</b> pelos do arquivo ('+Object.keys(d.users).length+' conta(s)).','Carregar').then(ok=>{if(!ok)return false;
-  const keep=DB.set;Object.keys(DB).forEach(k=>delete DB[k]);Object.assign(DB,{users:{},session:null,books:{},hidden:{},mail:{},prog:{},cloud:{books:[]},sync:{},diary:{},notes:[]},d);DB.set=Object.assign({pass:'prof123',hard:false,sound:true,room:'',sbUrl:'',sbKey:''},keep,d.set||{});DB.session=null;save();S.mid=null;Dlg.close();toast('Backup carregado! Escolha sua conta.','✅');go('login');return true})})}
+  const keep=DB.set;Object.keys(DB).forEach(k=>delete DB[k]);Object.assign(DB,{users:{},session:null,books:{},hidden:{},mail:{},prog:{},cloud:{books:[]},sync:{},diary:{},notes:[]},d);DB.set=Object.assign({pass:'prof123',hard:false,sound:true,gemKey:'',room:'',sbUrl:'',sbKey:''},keep,d.set||{});DB.session=null;save();S.mid=null;Dlg.close();toast('Backup carregado! Escolha sua conta.','✅');go('login');return true})})}
 function pickBackup(){const i=E('input',{type:'file',accept:'.json,application/json',hidden:true});document.body.append(i);i.onchange=()=>{const f=i.files[0];i.remove();if(f)restoreBackup(f).catch(e=>toast(e.message||'Falhou.','⚠️'))};i.click()}
 function saveProgress(){const u=me();save();if(u){Object.keys(DB.prog[u.id]||{}).forEach(m=>Net.pushProg(u.id,m));Net.saveUser(u)}toast(Net.on()?'Progresso salvo neste aparelho e enviado à sala online.':'Progresso salvo neste aparelho.','💾')}
 function openSettings(){
@@ -1255,6 +1258,25 @@ const Arara={
   $('#araMsgs').innerHTML=this.hist.slice(-40).map(m=>`<div class="ara-m ${m.who}">${m.who==='bot'?'<span class="ara-mav">🦜</span>':''}<div class="ara-b">${m.html}</div></div>`).join('');
   $('#araChips').innerHTML=this.chips();const el=$('#araMsgs');el.scrollTop=el.scrollHeight},
  ask(q,show){this.me_(show||q);const t=this.chips&&0;setTimeout(()=>{try{this.reply(q)}catch(e){console.error(e);this.say('Ops, minhas penas embaralharam! Tente perguntar de outro jeito.')}},320)},
+ /* ---- IA (Gemini) ---- */
+ llmOn(){return !!(DB.set.gemKey&&navigator.onLine!==false)},
+ ctxText(b){if(!b)return'Nenhum livro selecionado. Livros disponíveis: '+visibleBooks().map(x=>x.title).join('; ');
+  const info=parseBook(b),pr=P(me().id,b.id),pg=paginate(b.text).map((p,i)=>`[Página ${i+1}${p.title?' - '+p.title:''}] ${this.plain(p.src)}`).join('\n').slice(0,7000);
+  const got=pr.clues.filter(k=>info.clues[k]).map(k=>info.clues[k].label),miss=info.order.filter(k=>pr.clues.indexOf(k)<0).length;
+  const sol=info.rels.filter(r=>pr.links.indexOf(r.id)>=0).map(r=>`- ${r.label} ${r.exp||''}`),open=info.rels.filter(r=>pr.links.indexOf(r.id)<0).map(r=>`- ${r.q}`);
+  const cur=(DB.mail[me().id]||[]).filter(m=>m.curio&&(m.mid===b.id)).map(m=>`- ${m.title}: ${(m.body||[]).slice(1).join(' ')}`).join('\n');
+  return `LIVRO: ${b.title} (${(SUBJ[b.subject]||{}).n||''}, ${b.grade||''}). Resumo do professor: ${b.intro||''}\nTEXTO DO LIVRO:\n${pg}\n\nPISTAS que o aluno já guardou: ${got.join(', ')||'nenhuma'} (faltam ${miss}).\nMISSÕES RESOLVIDAS (pode explicar):\n${sol.join('\n')||'nenhuma'}\nMISSÕES AINDA ABERTAS (NÃO revele a resposta, só dê dicas):\n${open.join('\n')||'nenhuma'}\nCURIOSIDADES dos Amigos do Saber:\n${cur||'-'}`},
+ async gemini(q,hist,ctx){const sys=`Você é a Arara Tagarela, uma arara-azul simpática e falante, assistente de estudo do jogo "Detetives do Saber" para crianças do 4º ano do Ensino Fundamental (9 a 10 anos), no Brasil. Fale em português do Brasil, com frases curtas e simples, tom alegre, no máximo 120 palavras, com no máximo 1 ou 2 emojis e, de vez em quando, um "Squawk!". Ajude com resumos, dicas, explicações e estudo dirigido (perguntas para o aluno responder, uma por vez) SOMENTE com base no contexto do livro abaixo e em conhecimentos escolares simples de História, Geografia e Ciências adequados à idade. Regras: (1) nunca entregue a resposta de uma missão ainda aberta; dê dicas progressivas e incentive o aluno a usar o Animail e o Quadro de Evidências; (2) se a pergunta não for escolar ou for imprópria, responda com gentileza que você só conversa sobre os estudos e redirecione; (3) não peça nem aceite dados pessoais; (4) se não souber, diga que não sabe e sugira perguntar ao professor; (5) não invente fatos que contradigam o livro.\n\n`+ctx;
+  const contents=hist.slice(-8).map(m=>({role:m.who==='me'?'user':'model',parts:[{text:m.plain||m.html.replace(/<[^>]+>/g,' ')}]}));contents.push({role:'user',parts:[{text:q}]});
+  const url='https://generativelanguage.googleapis.com/v1beta/models/'+(DB.set.gemModel||'gemini-flash-latest')+':generateContent';
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),25000);
+  try{const r=await fetch(url,{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json','x-goog-api-key':DB.set.gemKey},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents,generationConfig:{temperature:.6,maxOutputTokens:600}})});
+   const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||r.status);const t=(((j.candidates||[])[0]||{}).content||{}).parts;const out=(t||[]).map(x=>x.text||'').join('').trim();if(!out)throw new Error('resposta vazia');return out}finally{clearTimeout(tm)}},
+ md(t){return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\n)[*-] (.+)/g,'$1• $2').replace(/\n/g,'<br>')},
+ async viaLLM(q,fb){if(!this.llmOn())return fb();const now_=Date.now();if(now_-(this._t||0)<1500){return fb()}this._t=now_;
+  const wait={who:'bot',html:'<i>Pensando…</i>',tmp:1};this.hist.push(wait);this.paint();
+  try{const hist=this.hist.filter(m=>!m.tmp&&!m.noai);const out=await this.gemini(q,hist.slice(0,-1),this.ctxText(this.book()));this.hist=this.hist.filter(m=>m!==wait);this.say(this.md(out),{plain:out})}
+  catch(e){this.hist=this.hist.filter(m=>m!==wait);console.warn('Gemini',e);fb();this.say('<small>(Estou sem conexão com a IA agora; respondi só com o que está nos livros.)</small>',{noai:1})}},
  /* ---- inteligência ---- */
  reply(q){const n=norm(q),b=this.book(),has=(...a)=>a.some(x=>n.indexOf(x)>=0);
   if(this.quiz&&this.quiz.wait&&has('parar','sair','chega','encerrar')){this.quiz=null;return this.say('Combinado! Quando quiser voltar ao estudo dirigido, é só pedir. 🦜')}
@@ -1262,16 +1284,16 @@ const Arara={
   if(has('obrigad','valeu','legal'))return this.say('De nada! Squawk! Investigar é muito mais divertido em dupla. 🦜');
   if(n==='livros'||has('trocar de livro','outro livro','quais livros','que livros','o que posso estudar'))return this.pick();
   const named=this.findBook(n);if(named&&named.id!==(b&&b.id)){this.bid=named.id;this.say(`Certo! Agora vamos falar de <b>${esc(named.title)}</b>.`);return this.reply(q.replace(/.*/,'resumo'))}
-  if(has('resumo','resumir','resuma','resumao'))return b?this.resumo(b):this.pick();
+  if(has('resumo','resumir','resuma','resumao'))return b?this.viaLLM('Faça um resumo do livro para uma criança do 4º ano.',()=>this.resumo(b)):this.pick();
   if(has('estudo','quiz','questionario','exercicio','treinar','praticar','perguntas para mim','me teste','me pergunte'))return b?this.estudo(b):this.pick();
   if(has('curiosidade','curioso','sabia'))return this.curio(b);
   if(has('missao','missoes','ligacao','ligacoes','quadro','progresso','como estou'))return b?this.missoes(b):this.pick();
   if(has('resposta','me diga a resposta','gabarito','entregar'))return this.say('Squawk! Entregar a resposta de mão beijada tira a graça da investigação. 😉 Mas eu dou <b>dicas</b>: peça uma dica ou use a lupa do Animail!');
-  if(has('dica','ajuda','ajudar','nao sei','travei','socorro'))return b?this.dica(b):this.pick();
+  if(has('dica','ajuda','ajudar','nao sei','travei','socorro'))return b?this.viaLLM(q,()=>this.dica(b)):this.pick();
   if(has('pista','pistas'))return b?this.pistas(b,n):this.pick();
   /* pista citada pelo nome */
-  if(b){const info=parseBook(b),pr=P(me().id,b.id),k=info.order.find(k=>n.indexOf(norm(info.clues[k].label))>=0&&norm(info.clues[k].label).length>2);if(k&&pr.clues.indexOf(k)>=0)return this.explainClue(b,k)}
-  return this.search(q,b)},
+  if(b){const info=parseBook(b),pr=P(me().id,b.id),k=info.order.find(k=>n.indexOf(norm(info.clues[k].label))>=0&&norm(info.clues[k].label).length>2);if(k&&pr.clues.indexOf(k)>=0)return this.viaLLM('Explique a pista «'+info.clues[k].label+'» deste livro.',()=>this.explainClue(b,k))}
+  return this.viaLLM(q,()=>this.search(q,b))},
  findBook(n){return visibleBooks().find(x=>{const t=norm(x.title).replace(/[^a-z0-9 ]/g,'');return t.length>5&&n.indexOf(t)>=0})},
  pick(){const bs=visibleBooks();this.say('Sobre qual livro vamos conversar?'+`<div class="ara-opts">${bs.map(x=>`<button data-ac="${esc(x.title)}" data-show="${esc(x.title)}" type="button">${esc(x.icon||(SUBJ[x.subject]||{}).i||'📖')} ${esc(x.title)}</button>`).join('')}</div>`)},
  resumo(b){const info=parseBook(b),pg=paginate(b.text),sj=SUBJ[b.subject]||SUBJ.historia;

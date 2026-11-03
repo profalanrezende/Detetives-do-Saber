@@ -17,6 +17,20 @@
 - **Professor → Notas e ditados**: escreva textos para os alunos copiarem e salvarem no Diário. As notas vão junto no `livros.json`.
 - Em cada livro, o campo *Curiosidades dos Amigos do Saber* (`Título | Texto`, uma por linha) vira cartas do Animail e anexos do Diário.
 
+## Arara Tagarela com IA (Gemini, opcional)
+Área do professor → Ajustes → cole a chave da API Gemini e use *Testar IA*. Para valer em todos os aparelhos, coloque `"gemKey":"SUA_CHAVE"` no `config.json`. Como o GitHub Pages é público, **restrinja a chave ao seu site** (referenciador HTTP) no Google AI Studio e use cota baixa. Sem chave, a Arara usa só o texto dos livros.
+
+## Publicar no GitHub Pages
+1. Crie um repositório e envie **todo o conteúdo desta pasta** para a raiz.
+2. *Settings → Pages → Deploy from branch → main / (root)*.
+3. Abra `https://SEU-USUARIO.github.io/SEU-REPO/`.
+
+## Contas e cartas no GitHub (importante)
+O GitHub Pages só entrega arquivos; **não guarda dados**. Por isso:
+- **Contas, cartas e progresso ficam no navegador de cada aparelho** (localStorage). No laboratório de informática (mesmo computador) todos se veem e trocam bilhetes normalmente.
+- Para alunos em **aparelhos diferentes** conversarem (casa, celular) use a **Sala online** (opcional, gratuita): veja abaixo.
+- **Livros do professor**: ficam no navegador onde foram criados. Para publicar para todos: *Área do professor → Livros → Baixar livros.json* e envie esse arquivo para a raiz do repositório (substitua o anterior). O jogo lê `livros.json` ao abrir.
+
 ## Sala online (Supabase, opcional)
 1. Crie um projeto em supabase.com, abra o *SQL Editor* e rode o conteúdo de `supabase/setup.sql`.
 2. *Área do professor → Sala online*: cole a URL do projeto, a chave **anon public** e escolha um código de sala (ex.: `T401`). Clique em *Salvar* e *Testar conexão*.
@@ -34,3 +48,6 @@
 
 ## Arquivos
 `index.html`, `style.css`, `app.js`, `sw.js`, `manifest.webmanifest`, ícones, `supabase/setup.sql`. Opcionais: `livros.json`, `config.json`.
+
+## Créditos e licenças
+Interfaces adaptadas de três projetos do CodePen: **Evidence Board** (Alansdead, MIT), **AniMail** (Grant Jenkins) e **Bound View**. Fontes: Special Elite, Anton, Courier Prime, DM Sans, Manrope e Material Icons (licenças abertas).
