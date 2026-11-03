@@ -50,4 +50,4 @@ O GitHub Pages só entrega arquivos; **não guarda dados**. Por isso:
 `index.html`, `style.css`, `app.js`, `sw.js`, `manifest.webmanifest`, ícones, `supabase/setup.sql`. Opcionais: `livros.json`, `config.json`.
 
 ## Créditos e licenças
-Interfaces adaptadas de três projetos do CodePen: **Evidence Board** (Alansdead, MIT), **AniMail** (Grant Jenkins) e **Bound View**. Fontes: Special Elite, Anton, Courier Prime, DM Sans, Manrope e Material Icons (licenças abertas).
+Projetos Pedagógicos: **A.R.S.** (Alan Rezende) **HTML5** **GAMES e APPS**.
